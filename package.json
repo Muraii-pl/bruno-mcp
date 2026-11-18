@@ -1,0 +1,32 @@
+{
+  "name": "@twoja-firma/bruno-mcp",
+  "version": "1.1.0",
+  "description": "Serwer MCP dla kolekcji Bruno: tryb central (GitLab + MR) i local (pliki w projekcie).",
+  "type": "module",
+  "bin": {
+    "bruno-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "prepare": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
