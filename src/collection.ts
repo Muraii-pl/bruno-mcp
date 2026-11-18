@@ -144,6 +144,8 @@ export type EndpointInput = {
   jsonBody?: string;
   postResponseVars?: Record<string, string>;
   description?: string;
+  assertions?: Record<string, string>;
+  tests?: string;
   overwrite?: boolean;
 };
 
@@ -161,6 +163,16 @@ export async function addEndpoint(repo: string, i: EndpointInput): Promise<Write
       throw new Error("jsonBody nie jest poprawnym JSON-em");
     }
   }
+
+  const tests = i.tests?.trim();
+  if (tests) {
+    try {
+      new Function("test", "expect", "res", "req", "bru", tests); // tylko kontrola składni, bez wykonania
+    } catch (e) {
+      throw new Error(`tests: błąd składni JS — ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  const hasAsserts = i.assertions && Object.keys(i.assertions).length > 0;
 
   const existed = await exists(file);
   if (existed && !i.overwrite) throw new Error(`Plik już istnieje: ${rel} (użyj overwrite: true albo write_bru)`);
@@ -192,13 +204,18 @@ export async function addEndpoint(repo: string, i: EndpointInput): Promise<Write
   if (body) blocks.push(textBlock("body:json", body));
   if (i.postResponseVars && Object.keys(i.postResponseVars).length)
     blocks.push(dictBlock("vars:post-response", i.postResponseVars));
-  if (i.description) blocks.push(textBlock("docs", i.description));
+  if (hasAsserts) blocks.push(dictBlock("assert", i.assertions!));
+  if (tests) blocks.push(textBlock("tests", tests));
+  if (i.description) blocks.push(textBlock("docs", i.description.trim()));
 
   await fs.writeFile(file, serializeBru(blocks));
   const shownPath = url.replace(/^(https?:\/\/[^/]+|(?:\{\{[^}]+\}\}|[^/{])+)(?=\/)/, "");
   return {
     message:
-      `Zapisano ${rel}\nURL: ${url}` + (created.length ? `\nUtworzono foldery: ${created.join(", ")}` : ""),
+      `Zapisano ${rel}\nURL: ${url}` +
+      (created.length ? `\nUtworzono foldery: ${created.join(", ")}` : "") +
+      (!i.description ? "\nUwaga: brak opisu (description) — dopisz go przez add_endpoint z overwrite albo write_bru." : "") +
+      (!hasAsserts && !tests ? "\nUwaga: brak testów (assertions/tests)." : "\nSprawdź testy: run_endpoint na tym pliku."),
     summary: `${existed ? "zmieniono" : "dodano"} \`${i.method.toUpperCase()} ${shownPath}\` → \`${rel}\``,
   };
 }

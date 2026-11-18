@@ -15,7 +15,11 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "install:local": "bash scripts/install-local.sh",
+    "uninstall:local": "bash scripts/uninstall-local.sh",
+    "install:server": "bash scripts/install-server.sh",
+    "setup:client": "bash scripts/setup-client.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",

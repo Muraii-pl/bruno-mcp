@@ -61,7 +61,10 @@ Claude Code (dev B) ──┼──► bruno-mcp (Docker) ──► worktree A �
 - podajesz `path` (np. `/njord/api/deposit/correction/contract/:contractUid`), a baza URL
   (`{{host}}:{{zuulPort}}`) jest brana z sąsiednich requestów
 - `pathParams` (np. `{"uid": "{{depositUid}}"}`), `postResponseVars` (np. `{"depositUid": "res.body.depositUid"}`),
-  `jsonBody`, `query`, `headers`, `description` (zakładka Docs)
+  `jsonBody`, `query`, `headers`, `description` (zakładka Docs, Markdown)
+- `assertions` (blok `assert`, np. `{"res.status": "eq 200"}`) i `tests` (blok `tests`, JS; składnia jest
+  sprawdzana przed zapisem). Model ma w instrukcjach dodawać do każdego nowego requestu opis i testy,
+  a potem uruchomić `run_endpoint`.
 - auth zawsze `inherit`
 
 ## Wdrożenie
@@ -81,11 +84,13 @@ Claude Code (dev B) ──┼──► bruno-mcp (Docker) ──► worktree A �
 ### 3. Serwer
 
 ```bash
-cp .env.example .env      # uzupełnij GITLAB_READ_TOKEN
-# w docker-compose.yml: GITLAB_URL, GITLAB_PROJECT, image
-docker compose up -d
-curl http://127.0.0.1:3000/health
+scripts/install-server.sh            # tworzy .env, pyta o brakujące wartości, sprawdza token, pull + up + health check
+scripts/install-server.sh --build    # obraz budowany lokalnie zamiast pull z registry
+scripts/install-server.sh --update   # aktualizacja: pull/build + restart, bez pytań
 ```
+
+Ręcznie: `cp .env.example .env`, uzupełnij wartości (cała konfiguracja jest w `.env`, `docker-compose.yml`
+nie trzeba edytować), potem `docker compose up -d` i `curl http://127.0.0.1:3000/health`.
 
 Wystaw serwer **tylko przez HTTPS** (nginx / Traefik), bo w nagłówkach idą tokeny.
 Dla nginx wyłącz buforowanie na `/mcp`:
@@ -117,7 +122,16 @@ Wszystkie zmienne:
 
 ### 4. Developerzy
 
-W **każdym repo serwisu** (albo raz globalnie, w `~/.claude.json`), plik `.mcp.json`:
+```bash
+# .mcp.json w repo serwisu + zapis sekretów do ~/.config/bruno-mcp/env (dopięty do ~/.bashrc / ~/.zshrc)
+scripts/setup-client.sh --url https://bruno-mcp.twoja-firma.pl/mcp --repo ~/work/serwis --save-env
+
+# albo raz globalnie w Claude Code (scope user)
+scripts/setup-client.sh --url https://bruno-mcp.twoja-firma.pl/mcp --global
+```
+
+Inne zmienne niż `KC_USER`/`KC_PASSWORD`: `--vars LOGIN,HASLO`. Ręcznie: w **każdym repo serwisu**
+(albo raz globalnie, w `~/.claude.json`), plik `.mcp.json`:
 
 ```json
 {
@@ -161,7 +175,17 @@ Przykład: `X-Bru-Env-KC-USER: jan` daje `{{process.env.KC_USER}}`.
 
 ## Tryb local
 
-Instalacja globalna (dla wszystkich Twoich projektów):
+Instalacja globalna (dla wszystkich Twoich projektów) skryptem z klonu repo:
+
+```bash
+git clone … ~/tools/bruno-mcp && cd ~/tools/bruno-mcp
+scripts/install-local.sh --with-bru            # build + Bruno CLI + rejestracja w Claude Code (scope user)
+scripts/install-local.sh --cursor              # dodatkowo ~/.cursor/mcp.json
+scripts/install-local.sh --bruno-dir api/bruno --env dev   # stały BRUNO_DIR i DEFAULT_RUN_ENV
+scripts/uninstall-local.sh                     # usunięcie rejestracji
+```
+
+Skrypt można uruchamiać wielokrotnie (np. po `git pull`): przebudowuje i nadpisuje wpis. Ręcznie:
 
 ```bash
 # z repo na GitHubie (buduje się przy instalacji)

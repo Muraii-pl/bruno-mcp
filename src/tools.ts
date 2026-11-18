@@ -18,7 +18,11 @@ const wrap = <A>(fn: (a: A) => Promise<string>) => async (a: A) => {
   }
 };
 
-const CONVENTIONS = `Zanim dodasz request: obejrzyj strukturę (list_folders), istniejące requesty w docelowym folderze (list_endpoints) i jeden z nich w całości (read_bru), żeby trzymać konwencje: krótkie nazwy w camelCase (np. findByUid), ścieżka URL zgodna z sąsiadami, wartości params:path i vars:post-response do łańcuchowania requestów.`;
+const CONVENTIONS = `Zanim dodasz request: obejrzyj strukturę (list_folders), istniejące requesty w docelowym folderze (list_endpoints) i jeden z nich w całości (read_bru), żeby trzymać konwencje: krótkie nazwy w camelCase (np. findByUid), ścieżka URL zgodna z sąsiadami, wartości params:path i vars:post-response do łańcuchowania requestów.
+Każdy nowy request (add_endpoint) ma mieć:
+- description: opis w Markdown do zakładki Docs: co robi endpoint, parametry (path/query/body) z typami, przykładowa odpowiedź, możliwe kody błędów;
+- assertions: co najmniej oczekiwany status (np. {"res.status":"eq 200"}), oraz tests: testy JS sprawdzające kluczowe pola odpowiedzi.
+Jeśli kontrakt API jest dostępny (kod kontrolera, DTO, OpenAPI), opieraj opis i testy na nim, nie na zgadywaniu. Po dodaniu uruchom run_endpoint i popraw testy, jeśli nie przechodzą z powodu błędu w teście.`;
 
 function instructions(ws: Workspace): string {
   const head =
@@ -68,7 +72,7 @@ export function buildServer(s: Workspace): McpServer {
     {
       title: "Dodaj / nadpisz request",
       description:
-        "Tworzy request .bru w podanym folderze (brakujące foldery dostają folder.bru). Gdy podasz path, baza URL (np. {{host}}:{{zuulPort}}) jest brana z sąsiednich requestów. Auth dziedziczony. " + afterWrite,
+        "Tworzy request .bru w podanym folderze (brakujące foldery dostają folder.bru) razem z opisem (Docs), asercjami i testami. Gdy podasz path, baza URL (np. {{host}}:{{zuulPort}}) jest brana z sąsiednich requestów. Auth dziedziczony. " + afterWrite,
       inputSchema: {
         folder: z.string().describe("Folder docelowy, np. deposit/correction"),
         name: z.string().describe("Nazwa requestu = nazwa pliku, w konwencji repo (np. findByContractUid)"),
@@ -83,7 +87,20 @@ export function buildServer(s: Workspace): McpServer {
           .record(z.string())
           .optional()
           .describe('Zmienne do łańcuchowania, np. {"depositUid":"res.body.depositUid"}'),
-        description: z.string().optional().describe("Opis do zakładki Docs"),
+        description: z
+          .string()
+          .optional()
+          .describe("Opis w Markdown do zakładki Docs: cel, parametry, przykładowa odpowiedź, kody błędów. Podawaj zawsze."),
+        assertions: z
+          .record(z.string())
+          .optional()
+          .describe('Asercje Bruno (blok assert), np. {"res.status":"eq 200","res.body.uid":"isString"}. Podawaj zawsze co najmniej status.'),
+        tests: z
+          .string()
+          .optional()
+          .describe(
+            'Testy JS (blok tests), np. test("zwraca uid", function() { expect(res.getStatus()).to.equal(200); expect(res.getBody().uid).to.be.a("string"); });',
+          ),
         overwrite: z.boolean().default(false),
       },
     },

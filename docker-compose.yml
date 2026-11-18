@@ -1,17 +1,18 @@
 services:
   bruno-mcp:
-    image: registry.gitlab.twoja-firma.pl/platform/bruno-mcp:latest
-    # albo lokalnie: build: .
+    image: ${BRUNO_MCP_IMAGE:-registry.gitlab.twoja-firma.pl/platform/bruno-mcp:latest}
+    # albo lokalnie: build: .   (scripts/install-server.sh --build robi to za Ciebie)
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"   # wystaw na zewnątrz tylko przez reverse proxy z HTTPS
-    env_file: .env              # sekrety: GITLAB_READ_TOKEN, opcjonalnie KC_USER/KC_PASSWORD konta technicznego
+      - "127.0.0.1:${BRUNO_MCP_PORT:-3000}:3000"   # na zewnątrz tylko przez reverse proxy z HTTPS
+    # cała konfiguracja i sekrety w .env (patrz .env.example / scripts/install-server.sh)
+    env_file: .env
     environment:
-      GITLAB_URL: https://gitlab.twoja-firma.pl
-      GITLAB_PROJECT: platform/api-collections
-      TARGET_BRANCH: main
-      DEFAULT_RUN_ENV: dev
-      SESSION_IDLE_MINUTES: "240"
+      GITLAB_URL: ${GITLAB_URL:?ustaw GITLAB_URL w .env}
+      GITLAB_PROJECT: ${GITLAB_PROJECT:?ustaw GITLAB_PROJECT w .env}
+      TARGET_BRANCH: ${TARGET_BRANCH:-main}
+      DEFAULT_RUN_ENV: ${DEFAULT_RUN_ENV:-}
+      SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-240}
     volumes:
       - bruno-data:/data
 
